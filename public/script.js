@@ -19,7 +19,14 @@ function toggleTheme() {
 // --- PRODUCTS DATA ---
 let products = [];
 let bdayCakes = {};
-buildCatalogFromList(null);
+let selectedFlavor = 'Red Velvet';
+let selectedWeight = '1.0';
+const BIRTHDAY_BASE_PRICES = {
+    '0.5': 450,
+    '1.0': 850,
+    '1.5': 1250,
+    '2.0': 1600
+};
 const DEFAULT_PRODUCTS = [
     { id: 1, name: "Velvet Dream Cake", category: "cakes", price: 850, emoji: "", img: "https://theobroma.in/cdn/shop/files/redvelvet-theo.jpg?v=1701321860" },
     { id: 2, name: "Dutch Truffle Delight", category: "cakes", price: 950, emoji: "", img: "https://tse3.mm.bing.net/th/id/OIP.6wMpc_E6xsHLl3zT2ItBSQHaHa?pid=Api&P=0&h=180" },
@@ -49,6 +56,7 @@ const BROWNIE_BLISS_BAKERY = {
     img: 'https://theobroma.in/cdn/shop/files/OverloadBrownie_400x400.jpg?v=1711183338'
 };
 let favourites = loadFavourites();
+buildCatalogFromList(null);
 
 function useFallbackProducts() {
     products = DEFAULT_PRODUCTS;
@@ -147,37 +155,30 @@ async function loadProducts() {
     }
     if (document.getElementById('cakePrice')) {
         calculateBdayPrice();
-        if (data.success && Array.isArray(data.products) && data.products.length) {
-            products = data.products.filter(p => p.type === 'standard').map(p => ({
-                id: p.id_ref,
-                name: p.name,
-                category: p.category,
+    }
+}
+
+function buildCatalogFromList(list) {
+    if (list && Array.isArray(list) && list.length) {
+        products = list.filter(p => p.type === 'standard').map(p => ({
+            id: p.id_ref,
+            name: p.name,
+            category: p.category,
+            price: p.price,
+            emoji: p.emoji,
+            img: p.img
+        }));
+
+        const bd = list.filter(p => p.type === 'birthday');
+        bdayCakes = {};
+        bd.forEach(p => {
+            bdayCakes[p.id_ref] = {
                 price: p.price,
                 emoji: p.emoji,
                 img: p.img
-            }));
-
-            const bd = data.products.filter(p => p.type === 'birthday');
-            bd.forEach(p => {
-                bdayCakes[p.id_ref] = {
-                    price: p.price,
-                    emoji: p.emoji,
-                    img: p.img
-                };
-            });
-
-            // Re-render UI now that data is loaded
-            if (document.getElementById('productsGrid')) {
-                filterProducts('all');
-            }
-            if (document.getElementById('cakePrice')) {
-                calculateBdayPrice();
-            }
-        } else {
-            useFallbackProducts();
-        }
-    } catch (e) {
-        console.error('Error loading products from database:', e);
+            };
+        });
+    } else {
         useFallbackProducts();
     }
 }
@@ -600,11 +601,8 @@ function sendWhatsAppFinal(orderId, itemsSnap, orderTotal) {
     const total = typeof orderTotal === 'number' && Number.isFinite(orderTotal)
         ? orderTotal
         : lines.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0);
-    const itemLines = lines.map(i => `• ${i.name} × ${i.qty} = ₹${(Number(i.price) * Number(i.qty)).toLocaleString('en-IN')}`).join('\n');
-function sendWhatsAppFinal(orderId) {
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    const itemLines = cart.map(i => {
-        let line = `• ${i.name} × ${i.qty} = ₹${(i.price * i.qty).toLocaleString()}`;
+    const itemLines = lines.map(i => {
+        let line = `• ${i.name} × ${i.qty} = ₹${(Number(i.price) * Number(i.qty)).toLocaleString('en-IN')}`;
         if (i.customizations) {
             const c = i.customizations;
             const details = [];
@@ -669,8 +667,6 @@ function filterProducts(category, btn) {
                 <div class="product-category">${p.category}</div>
                 <div class="product-name">${p.name}</div>
                 <div class="product-price">₹${p.price}</div>
-                <button type="button" class="add-to-cart" data-product-id="${String(p.id)}">
-                    Add to Cart
                 <button class="add-to-cart">
                     Customize & Add
                 </button>
@@ -680,14 +676,6 @@ function filterProducts(category, btn) {
 }
 
 // --- BIRTHDAY CAKE BUILDER ---
-let selectedFlavor = 'Red Velvet';
-let selectedWeight = '1.0';
-const BIRTHDAY_BASE_PRICES = {
-    '0.5': 450,
-    '1.0': 850,
-    '1.5': 1250,
-    '2.0': 1600
-};
 // bdayCakes object is now populated dynamically via loadProducts()
 
 function updateBirthdayCake(flavor) {

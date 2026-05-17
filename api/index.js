@@ -694,15 +694,9 @@ app.get('/', (req, res) => {
 });
 
 // ─── START ─────────────────────────────────────────────────────────────────────
-if (require.main === module) {
-  if (!MONGO_URI) {
-    console.warn('⚠️  MONGO_URI is not set. Orders and products API run in memory/static mode until you restart the server.');
-  }
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
 function startServer(port) {
   const server = app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log(`🚀 Server running at http://localhost:${port}`);
   });
 
   server.on('error', (err) => {
@@ -719,6 +713,9 @@ function startServer(port) {
 }
 
 if (require.main === module) {
+  if (!MONGO_URI) {
+    console.warn('⚠️  MONGO_URI is not set. Orders and products API run in memory/static mode until you restart the server.');
+  }
   startServer(Number(PORT));
 }
 
